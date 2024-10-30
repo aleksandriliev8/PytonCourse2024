@@ -11,9 +11,9 @@ def possible_moves(collumn, row):
 
     # Generating all potential positions of the knight
     all_moves = map(
-        lambda dc_dr:
-            (chr(col_to_num + dc_dr[0] + ord('a') - 1), 
-            row + dc_dr[1]),
+        lambda knightCol_knightRow:
+            (chr(col_to_num + knightCol_knightRow[0] + ord('a') - 1), 
+            row + knightCol_knightRow[1]),
             moves
     )
 
