@@ -7,7 +7,7 @@ def pretty_print(matrix):
 
 
 def get_column(matrix, column):
-    if column >= 0 and column < 3:
+    if column >= 0 and column < len(matrix[0]):
         return [row[column] for row in matrix]
     else:
         print(f"{column} is not a valid column index for the matrix.")
