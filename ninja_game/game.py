@@ -15,7 +15,6 @@ class Game:
         pygame.init()
 
         pygame.display.set_caption('Ninja game')
-        # create window
         self.screen = pygame.display.set_mode((600, 480))
         self.display = pygame.Surface((320, 240))
 
@@ -37,6 +36,7 @@ class Game:
             'player/slide': Animation(load_images('entities/player/slide')),
             'player/wall_slide': Animation(load_images('entities/player/wall_slide')),
             'particle/leaf': Animation(load_images('particles/leaf'), img_dur=20, loop=False),
+            'particle/particle': Animation(load_images('particles/particle'), img_dur=6, loop=False),
         }
 
         self.clouds = Clouds(self.assets['clouds'], count = 16)
@@ -84,7 +84,6 @@ class Game:
                     self.particles.remove(particle)
 
             for event in pygame.event.get():
-                #clicked x on the window
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
@@ -98,7 +97,10 @@ class Game:
 
                     if event.key == pygame.K_UP:
                         self.player.jump()
-                
+
+                    if event.key == pygame.K_x:
+                        self.player.dash()
+
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
                         self.movement[0] = False
@@ -108,7 +110,6 @@ class Game:
 
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
             pygame.display.update()
-            # run the loop at 60fps
             self.clock.tick(60)
 
 Game().run()

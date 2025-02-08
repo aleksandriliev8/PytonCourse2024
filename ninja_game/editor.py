@@ -12,7 +12,6 @@ class Editor:
         pygame.init()
 
         pygame.display.set_caption('editor')
-        # create window
         self.screen = pygame.display.set_mode((640, 480))
         self.display = pygame.Surface((320, 240))
 
@@ -83,7 +82,6 @@ class Editor:
             self.display.blit(current_tile_img, (5, 5))
 
             for event in pygame.event.get():
-                #clicked x on the window
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
@@ -156,7 +154,6 @@ class Editor:
 
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
             pygame.display.update()
-            # run the loop at 60fps
             self.clock.tick(60)
 
 Editor().run()
