@@ -77,6 +77,7 @@ class Game:
         self.total_paused_time = 0
 
         self.health = 3
+        self.full_heart = pygame.image.load('assets/heart.png')
 
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -115,7 +116,6 @@ class Game:
                 if self.transition > 30:
                     self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
                     self.load_level(self.level)
-                    self.level_start_time = pygame.time.get_ticks()
                     self.total_paused_time = 0
 
             if self.transition < 0:
@@ -127,13 +127,14 @@ class Game:
                     self.transition = min(30, self.transition + 1)
                 if self.dead > 40:
                     self.health -= 1
+
                     if self.health == 0:
                         self.level = 0
                         self.health = 3
                         self.load_level(0)  
-                    self.load_level(self.level)
-                    self.total_paused_time = 0
-
+                    else:
+                        self.load_level(self.level)
+                    self.dead = 0
 
             self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2 - self.scroll[0]) / 30
             self.scroll[1] += (self.player.rect().centery - self.display.get_height() / 2 - self.scroll[1]) / 30
@@ -246,8 +247,8 @@ class Game:
 
             time_text = self.get_font(20).render(f"Time: {elapsed_time:.2f}s", True, "#ffe933")
 
-            self.screen.blit(time_text, (10, 10))
-
+            self.screen.blit(time_text, (20, 20))
+            self.full_hearts()
             pygame.display.update()
             self.clock.tick(60)
 
@@ -355,5 +356,14 @@ class Game:
             self.clock.tick(60)
 
             pygame.display.update()
+
+    def full_hearts(self):
+        screen_width = self.screen.get_width() 
+        heart_spacing = 40
+
+        for i in range(self.health):
+            x_pos = screen_width - (i + 1.5) * heart_spacing
+            self.screen.blit(self.full_heart, (x_pos, 8))
+
 
 Game().run()
