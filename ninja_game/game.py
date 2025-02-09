@@ -79,6 +79,8 @@ class Game:
         self.health = 3
         self.full_heart = pygame.image.load('assets/heart.png')
 
+        self.star = pygame.image.load('assets/star.png')
+
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
 
@@ -249,6 +251,8 @@ class Game:
 
             self.screen.blit(time_text, (20, 20))
             self.full_hearts()
+            self.stars()
+
             pygame.display.update()
             self.clock.tick(60)
 
@@ -357,9 +361,30 @@ class Game:
 
             pygame.display.update()
 
+    def stars(self):
+        screen_width = self.screen.get_width() 
+        star_spacing = 35
+
+        elapsed_time = (pygame.time.get_ticks() - self.level_start_time - self.total_paused_time) / 1000
+
+        if elapsed_time < 60:
+            star_count = 3
+        elif elapsed_time < 90:
+            star_count = 2
+        else:
+            star_count = 1
+
+        total_width = star_count * star_spacing
+        start_x = (screen_width - total_width) / 2
+
+        for i in range(star_count):
+            x_pos = start_x + i * star_spacing
+            self.screen.blit(self.star, (x_pos, 10))
+
+
     def full_hearts(self):
         screen_width = self.screen.get_width() 
-        heart_spacing = 40
+        heart_spacing = 38
 
         for i in range(self.health):
             x_pos = screen_width - (i + 1.5) * heart_spacing
