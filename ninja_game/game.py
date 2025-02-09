@@ -73,7 +73,10 @@ class Game:
         self.screenshake = 0
 
         self.level_start_time = pygame.time.get_ticks()
-        self.pause_time = 0
+        self.pause_start_time = 0
+        self.total_paused_time = 0
+
+        self.health = 3
 
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -113,6 +116,7 @@ class Game:
                     self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
                     self.load_level(self.level)
                     self.level_start_time = pygame.time.get_ticks()
+                    self.total_paused_time = 0
 
             if self.transition < 0:
                 self.transition += 1
@@ -122,11 +126,13 @@ class Game:
                 if self.dead >= 10:
                     self.transition = min(30, self.transition + 1)
                 if self.dead > 40:
-                    self.player.health -= 1
-                    if self.player.health == 0:
+                    self.health -= 1
+                    if self.health == 0:
                         self.level = 0
-                        self.load_level(0)   
+                        self.health = 3
+                        self.load_level(0)  
                     self.load_level(self.level)
+                    self.total_paused_time = 0
 
 
             self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2 - self.scroll[0]) / 30
@@ -236,7 +242,7 @@ class Game:
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             self.screen.blit(pygame.transform.scale(self.display_2, self.screen.get_size()), screenshake_offset)
 
-            elapsed_time = (pygame.time.get_ticks() - self.level_start_time - self.pause_time) / 1000
+            elapsed_time = (pygame.time.get_ticks() - self.level_start_time - self.total_paused_time) / 1000
 
             time_text = self.get_font(20).render(f"Time: {elapsed_time:.2f}s", True, "#ffe933")
 
@@ -301,7 +307,7 @@ class Game:
         self.main_menu()
 
     def pause(self):
-        paused_at = pygame.time.get_ticks()
+        self.pause_start_time = pygame.time.get_ticks()
 
         while True:            
             mpos = pygame.mouse.get_pos()
@@ -333,11 +339,12 @@ class Game:
                     sys.exit()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_q:
-                        self.pause_time += pygame.time.get_ticks() - paused_at
+                        self.total_paused_time += pygame.time.get_ticks() - self.pause_start_time
                         return 
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if play_button.checkForInput(mpos):
+                        self.total_paused_time += pygame.time.get_ticks() - self.pause_start_time
                         self.play()
                     if options_button.checkForInput(mpos):
                         pass
