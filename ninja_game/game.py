@@ -396,9 +396,11 @@ class Game:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if continue_button.checkForInput(mpos):
                         self.total_paused_time += pygame.time.get_ticks() - self.pause_start_time
-                        self.play()
+                        self.movement = [False, False]
+                        return
                     if restart_button.checkForInput(mpos):
                         self.restart = True
+                        self.movement = [False, False]
                         self.play()
                     if options_button.checkForInput(mpos):
                         pass
@@ -540,6 +542,51 @@ class Game:
 
             self.clock.tick(60)
 
+            pygame.display.update()
+
+
+        while True:
+            mpos = pygame.mouse.get_pos()
+
+            self.display.blit(self.assets['background'], (0, 0))
+            self.clouds.update()
+            self.clouds.render(self.display, (0, 0))
+
+            title_text = self.get_font(45).render(title, True, (255, 255, 255))
+            title_rect = title_text.get_rect(center=(320, 50))
+            self.screen.blit(title_text, title_rect)
+
+            if subtitle:
+                subtitle_text = self.get_font(40).render(subtitle, True, subtitle_color)
+                subtitle_rect = subtitle_text.get_rect(center=(320, title_rect.bottom + 20))
+                self.screen.blit(subtitle_text, subtitle_rect)
+
+            button_objects = []
+            for i, (text, pos, action) in enumerate(buttons or []):
+                btn = Button(
+                    image=pygame.image.load("assets/main_rect.png"),
+                    pos=(320, 300 + i * 80),
+                    text_input=text,
+                    font=self.get_font(30),
+                    base_color="#d7fcd4",
+                    hovering_color="White"
+                )
+                button_objects.append((btn, action))
+
+            for btn, action in button_objects:
+                btn.changeColor(mpos)
+                btn.update(self.screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    for btn, action in button_objects:
+                        if btn.checkForInput(mpos):
+                            action()
+
+            self.clock.tick(60)
             pygame.display.update()
 
 Game().run()
