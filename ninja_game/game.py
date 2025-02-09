@@ -2,6 +2,7 @@ import os
 import sys
 import math
 import random
+import json
 
 import pygame
 
@@ -12,6 +13,8 @@ from scripts.clouds import Clouds
 from scripts.particle import Particle
 from scripts.spark import Spark
 from scripts.button import Button
+
+BEST_TIME_FILE = "best_time.json"
 
 class Game:
     def __init__(self):
@@ -72,14 +75,18 @@ class Game:
         self.level = 0
         self.screenshake = 0
 
-        self.level_start_time = pygame.time.get_ticks()
-        self.pause_start_time = 0
-        self.total_paused_time = 0
-
         self.health = 3
         self.full_heart = pygame.image.load('assets/heart.png')
 
         self.star = pygame.image.load('assets/star.png')
+
+        self.restart = False
+
+        self.best_time = 0
+        self.load_best_time()  # Зареждаме времето от файл
+        self.game_start_time = pygame.time.get_ticks()
+        self.pause_start_time = 0
+        self.total_paused_time = 0
 
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
@@ -113,12 +120,34 @@ class Game:
 
             self.screenshake = max(0, self.screenshake - 1)
 
+            if self.restart:
+                self.level = 0
+                self.load_level(0)
+                self.health = 3
+                self.game_start_time = pygame.time.get_ticks()
+                self.total_paused_time = 0
+                self.game_start_time = pygame.time.get_ticks()
+                self.restart = False
+
             if not len(self.enemies):
                 self.transition += 1
                 if self.transition > 30:
-                    self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
-                    self.load_level(self.level)
-                    self.total_paused_time = 0
+                    if self.level == len(os.listdir('data/maps')) - 1:
+                        total_time = (pygame.time.get_ticks() - self.game_start_time - self.total_paused_time) / 1000
+
+                        if total_time < self.best_time:
+                            self.best_time = total_time
+                            self.save_best_time()  # Запазваме новото най-добро време
+
+                        self.level = 0
+                        self.health = 3
+                        self.load_level(0)
+                        self.game_start_time = pygame.time.get_ticks()
+                        self.total_paused_time = 0
+                    else:
+                        self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
+                        self.load_level(self.level)
+                        self.total_paused_time = 0
 
             if self.transition < 0:
                 self.transition += 1
@@ -129,7 +158,6 @@ class Game:
                     self.transition = min(30, self.transition + 1)
                 if self.dead > 40:
                     self.health -= 1
-
                     if self.health == 0:
                         self.level = 0
                         self.health = 3
@@ -245,13 +273,16 @@ class Game:
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             self.screen.blit(pygame.transform.scale(self.display_2, self.screen.get_size()), screenshake_offset)
 
-            elapsed_time = (pygame.time.get_ticks() - self.level_start_time - self.total_paused_time) / 1000
-
-            time_text = self.get_font(20).render(f"Time: {elapsed_time:.2f}s", True, "#ffe933")
-
-            self.screen.blit(time_text, (20, 20))
             self.full_hearts()
             self.stars()
+
+            elapsed_time = (pygame.time.get_ticks() - self.game_start_time - self.total_paused_time) / 1000
+            time_text = self.get_font(20).render(f"Time: {elapsed_time:.2f}s", True, "#ffe933")
+            self.screen.blit(time_text, (20, 20))
+
+            best_time_display = "0.00" if self.best_time == float("inf") else f"{self.best_time:.2f}"
+            best_time_text = self.get_font(20).render(f"Best: {best_time_display}s", True, "#00ff00")
+            self.screen.blit(best_time_text, (20, self.screen.get_height() - 40))
 
             pygame.display.update()
             self.clock.tick(60)
@@ -327,14 +358,16 @@ class Game:
 
             self.screen.blit(pygame.transform.scale(blur_surf, self.screen.get_size()), (0, 0))
             
-            play_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 150), 
-                            text_input="LEVELS", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
-            options_button = Button(image=pygame.image.load("assets/Options Rect.png"), pos=(320, 250), 
-                                text_input="OPTIONS", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
-            quit_button = Button(image=pygame.image.load("assets/Quit Rect.png"), pos=(320, 350), 
-                                text_input="QUIT", font=self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            continue_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 120), 
+                            text_input="CONTINUE", font= self.get_font(26), base_color="#d7fcd4", hovering_color="White")
+            restart_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 200), 
+                            text_input="RESTART", font= self.get_font(26), base_color="#d7fcd4", hovering_color="White")
+            options_button = Button(image=pygame.image.load("assets/Options Rect.png"), pos=(320, 280), 
+                                text_input="OPTIONS", font= self.get_font(26), base_color="#d7fcd4", hovering_color="White")
+            quit_button = Button(image=pygame.image.load("assets/Quit Rect.png"), pos=(320, 360), 
+                                text_input="QUIT", font=self.get_font(26), base_color="#d7fcd4", hovering_color="White")
 
-            for button in [play_button, options_button, quit_button]:
+            for button in [continue_button, restart_button, options_button, quit_button]:
                 button.changeColor(mpos)
                 button.update(self.screen)
 
@@ -348,8 +381,11 @@ class Game:
                         return 
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if play_button.checkForInput(mpos):
+                    if continue_button.checkForInput(mpos):
                         self.total_paused_time += pygame.time.get_ticks() - self.pause_start_time
+                        self.play()
+                    if restart_button.checkForInput(mpos):
+                        self.restart = True
                         self.play()
                     if options_button.checkForInput(mpos):
                         pass
@@ -365,7 +401,7 @@ class Game:
         screen_width = self.screen.get_width() 
         star_spacing = 35
 
-        elapsed_time = (pygame.time.get_ticks() - self.level_start_time - self.total_paused_time) / 1000
+        elapsed_time = (pygame.time.get_ticks() - self.game_start_time - self.total_paused_time) / 1000
 
         if elapsed_time < 60:
             star_count = 3
@@ -381,7 +417,6 @@ class Game:
             x_pos = start_x + i * star_spacing
             self.screen.blit(self.star, (x_pos, 10))
 
-
     def full_hearts(self):
         screen_width = self.screen.get_width() 
         heart_spacing = 38
@@ -390,5 +425,16 @@ class Game:
             x_pos = screen_width - (i + 1.5) * heart_spacing
             self.screen.blit(self.full_heart, (x_pos, 8))
 
+    def save_best_time(self):
+        with open(BEST_TIME_FILE, "w") as file:
+            json.dump({"best_time": self.best_time}, file)
+
+    def load_best_time(self):
+        if os.path.exists(BEST_TIME_FILE):
+            with open(BEST_TIME_FILE, "r") as file:
+                data = json.load(file)
+                self.best_time = data.get("best_time", 0)
+        else:
+            self.best_time = float("inf")
 
 Game().run()
