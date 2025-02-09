@@ -11,6 +11,7 @@ from scripts.tilemap import Tilemap
 from scripts.clouds import Clouds
 from scripts.particle import Particle
 from scripts.spark import Spark
+from scripts.button import Button
 
 class Game:
     def __init__(self):
@@ -71,6 +72,9 @@ class Game:
         self.level = 0
         self.screenshake = 0
 
+        self.level_start_time = pygame.time.get_ticks()
+        self.pause_time = 0
+
     def load_level(self, map_id):
         self.tilemap.load('data/maps/' + str(map_id) + '.json')
 
@@ -94,14 +98,10 @@ class Game:
         self.dead = 0
         self.transition = -30
 
-    def run(self):
-        pygame.mixer.music.load('data/music.wav')
-        pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)
+    def play(self):
+        running = True
 
-        self.sfx['ambience'].play(-1)
-
-        while True:
+        while running:
             self.display.fill((0, 0, 0, 0))
             self.display_2.blit(self.assets['background'], (0, 0))
 
@@ -112,6 +112,8 @@ class Game:
                 if self.transition > 30:
                     self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
                     self.load_level(self.level)
+                    self.level_start_time = pygame.time.get_ticks()
+
             if self.transition < 0:
                 self.transition += 1
 
@@ -120,7 +122,12 @@ class Game:
                 if self.dead >= 10:
                     self.transition = min(30, self.transition + 1)
                 if self.dead > 40:
+                    self.player.health -= 1
+                    if self.player.health == 0:
+                        self.level = 0
+                        self.load_level(0)   
                     self.load_level(self.level)
+
 
             self.scroll[0] += (self.player.rect().centerx - self.display.get_width() / 2 - self.scroll[0]) / 30
             self.scroll[1] += (self.player.rect().centery - self.display.get_height() / 2 - self.scroll[1]) / 30
@@ -206,6 +213,10 @@ class Game:
 
                     if event.key == pygame.K_x:
                         self.player.dash()
+                    
+                    if event.key == pygame.K_q:
+                        self.pause()
+                        self.movement = [False, False]
 
                 if event.type == pygame.KEYUP:
                     if event.key == pygame.K_LEFT:
@@ -224,7 +235,118 @@ class Game:
 
             screenshake_offset = (random.random() * self.screenshake - self.screenshake / 2, random.random() * self.screenshake - self.screenshake / 2)
             self.screen.blit(pygame.transform.scale(self.display_2, self.screen.get_size()), screenshake_offset)
+
+            elapsed_time = (pygame.time.get_ticks() - self.level_start_time - self.pause_time) / 1000
+
+            time_text = self.get_font(20).render(f"Time: {elapsed_time:.2f}s", True, "#ffe933")
+
+            self.screen.blit(time_text, (10, 10))
+
             pygame.display.update()
             self.clock.tick(60)
+
+    def get_font(self, size):
+        return pygame.font.Font("data/font.ttf", size)
+
+    def main_menu(self):
+        while True:
+            mpos = pygame.mouse.get_pos()
+            menu_text = self.get_font(60).render("NINJA GAME", True, (0,0,0))
+            MENU_RECT = menu_text.get_rect(center=(320, 90))
+
+            self.display.blit(self.assets['background'], (0, 0))
+            
+            self.clouds.update()
+            self.clouds.render(self.display, (0, 0))
+            
+            play_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 200), 
+                            text_input="PLAY", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            options_button = Button(image=pygame.image.load("assets/Options Rect.png"), pos=(320, 280), 
+                                text_input="OPTIONS", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            quit_button = Button(image=pygame.image.load("assets/Quit Rect.png"), pos=(320, 360), 
+                                text_input="QUIT", font=self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+
+            self.screen.blit(menu_text, MENU_RECT)
+
+            for button in [play_button, options_button, quit_button]:
+                button.changeColor(mpos)
+                button.update(self.screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if play_button.checkForInput(mpos):
+                        self.play()
+                    if options_button.checkForInput(mpos):
+                        pass
+                    if quit_button.checkForInput(mpos):
+                        pygame.quit()
+                        sys.exit()
+
+            self.clock.tick(60)
+
+            pygame.display.update()
+
+    def run(self):
+        pygame.mixer.music.load('data/music.wav')
+        pygame.mixer.music.set_volume(0.5)
+        pygame.mixer.music.play(-1)
+
+        self.sfx['ambience'].play(-1)
+
+        self.main_menu()
+
+    def pause(self):
+        paused_at = pygame.time.get_ticks()
+
+        while True:            
+            mpos = pygame.mouse.get_pos()
+
+            self.display.blit(self.assets['background'], (0, 0))
+            
+            self.clouds.update()
+            self.clouds.render(self.display, (0, 0))
+
+            blur_surf = pygame.transform.smoothscale(self.display, (self.display.get_width() // 3, self.display.get_height() // 3))
+            blur_surf = pygame.transform.smoothscale(blur_surf, self.display.get_size())
+
+            self.screen.blit(pygame.transform.scale(blur_surf, self.screen.get_size()), (0, 0))
+            
+            play_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 150), 
+                            text_input="LEVELS", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            options_button = Button(image=pygame.image.load("assets/Options Rect.png"), pos=(320, 250), 
+                                text_input="OPTIONS", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            quit_button = Button(image=pygame.image.load("assets/Quit Rect.png"), pos=(320, 350), 
+                                text_input="QUIT", font=self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+
+            for button in [play_button, options_button, quit_button]:
+                button.changeColor(mpos)
+                button.update(self.screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_q:
+                        self.pause_time += pygame.time.get_ticks() - paused_at
+                        return 
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if play_button.checkForInput(mpos):
+                        self.play()
+                    if options_button.checkForInput(mpos):
+                        pass
+                    if quit_button.checkForInput(mpos):
+                        pygame.quit()
+                        sys.exit()
+
+            self.clock.tick(60)
+
+            pygame.display.update()
 
 Game().run()
