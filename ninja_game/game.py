@@ -77,13 +77,13 @@ class Game:
 
         self.health = 3
         self.full_heart = pygame.image.load('assets/heart.png')
-
         self.star = pygame.image.load('assets/star.png')
+        self.cup = pygame.image.load('assets/cup.png')
 
         self.restart = False
 
         self.best_time = 0
-        self.load_best_time()  # Зареждаме времето от файл
+        self.load_best_time()
         self.game_start_time = pygame.time.get_ticks()
         self.pause_start_time = 0
         self.total_paused_time = 0
@@ -113,6 +113,8 @@ class Game:
 
     def play(self):
         running = True
+        self.game_start_time = pygame.time.get_ticks()
+        self.total_paused_time = 0
 
         while running:
             self.display.fill((0, 0, 0, 0))
@@ -134,16 +136,27 @@ class Game:
                 if self.transition > 30:
                     if self.level == len(os.listdir('data/maps')) - 1:
                         total_time = (pygame.time.get_ticks() - self.game_start_time - self.total_paused_time) / 1000
-
-                        if total_time < self.best_time:
-                            self.best_time = total_time
-                            self.save_best_time()  # Запазваме новото най-добро време
-
+                        for alpha in range(0, 255, 5):
+                            transition_surf = pygame.Surface(self.screen.get_size())
+                            transition_surf.fill((0, 0, 0))
+                            transition_surf.set_alpha(alpha)  # Регулиране на прозрачността
+                            self.screen.blit(transition_surf, (0, 0))
+                            pygame.display.update()
+                            self.clock.tick(480)
+                            
                         self.level = 0
                         self.health = 3
                         self.load_level(0)
                         self.game_start_time = pygame.time.get_ticks()
                         self.total_paused_time = 0
+
+                        if total_time < self.best_time:
+                            self.best_time = total_time
+                            self.save_best_time()
+                            self.win()
+                        else:
+                            self.lose()
+
                     else:
                         self.level = min(self.level + 1, len(os.listdir('data/maps')) - 1)
                         self.load_level(self.level)
@@ -301,11 +314,11 @@ class Game:
             self.clouds.update()
             self.clouds.render(self.display, (0, 0))
             
-            play_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 200), 
+            play_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 200), 
                             text_input="PLAY", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
-            options_button = Button(image=pygame.image.load("assets/Options Rect.png"), pos=(320, 280), 
+            options_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 280), 
                                 text_input="OPTIONS", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
-            quit_button = Button(image=pygame.image.load("assets/Quit Rect.png"), pos=(320, 360), 
+            quit_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 360), 
                                 text_input="QUIT", font=self.get_font(30), base_color="#d7fcd4", hovering_color="White")
             
             self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
@@ -358,13 +371,13 @@ class Game:
 
             self.screen.blit(pygame.transform.scale(blur_surf, self.screen.get_size()), (0, 0))
             
-            continue_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 120), 
+            continue_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 120), 
                             text_input="CONTINUE", font= self.get_font(26), base_color="#d7fcd4", hovering_color="White")
-            restart_button = Button(image=pygame.image.load("assets/Play Rect.png"), pos=(320, 200), 
+            restart_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 200), 
                             text_input="RESTART", font= self.get_font(26), base_color="#d7fcd4", hovering_color="White")
-            options_button = Button(image=pygame.image.load("assets/Options Rect.png"), pos=(320, 280), 
+            options_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 280), 
                                 text_input="OPTIONS", font= self.get_font(26), base_color="#d7fcd4", hovering_color="White")
-            quit_button = Button(image=pygame.image.load("assets/Quit Rect.png"), pos=(320, 360), 
+            quit_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 360), 
                                 text_input="QUIT", font=self.get_font(26), base_color="#d7fcd4", hovering_color="White")
 
             for button in [continue_button, restart_button, options_button, quit_button]:
@@ -436,5 +449,97 @@ class Game:
                 self.best_time = data.get("best_time", 0)
         else:
             self.best_time = float("inf")
+
+    def win(self):
+        while True:
+            mpos = pygame.mouse.get_pos()
+            win_text = self.get_font(45).render("CONGRATULATIONS", True, (255, 255, 255))
+            new_best = self.get_font(40).render("NEW BEST!", True, (255, 255, 255))
+            win_rect = win_text.get_rect(center=(320, 50))
+            best_rect = new_best.get_rect(center=(320, win_rect.bottom + 20))
+
+            self.display.blit(self.assets['background'], (0, 0))
+            
+            self.clouds.update()
+            self.clouds.render(self.display, (0, 0))
+            
+            menu_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 320), 
+                            text_input="BACK", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            quit_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 400), 
+                                text_input="QUIT", font=self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+
+            self.screen.blit(win_text, win_rect)
+            self.screen.blit(new_best, best_rect.topleft)
+            cup_rect = self.cup.get_rect(center=(320 + 10, best_rect.bottom + 80))  # Центриране на купата под текста
+            self.screen.blit(self.cup, cup_rect.topleft)
+
+            for button in [menu_button, quit_button]:
+                button.changeColor(mpos)
+                button.update(self.screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if menu_button.checkForInput(mpos):
+                        self.movement = [False, False]
+                        self.game_start_time = pygame.time.get_ticks()
+                        self.total_paused_time = 0
+                        self.main_menu()
+                    if quit_button.checkForInput(mpos):
+                        pygame.quit()
+                        sys.exit()
+
+            self.clock.tick(60)
+
+            pygame.display.update()
+
+    def lose(self):
+        while True:
+            mpos = pygame.mouse.get_pos()
+            lose_text = self.get_font(55).render("NICE TRY!", True, (255, 255, 255))
+            time_beat = self.get_font(40).render(f"TIME TO BEAT: {self.best_time}", True, "#ff0000")
+            lose_rect = lose_text.get_rect(center=(320, 100))
+            time_beat_rect = time_beat.get_rect(center=(320, lose_rect.bottom + 70))
+
+            self.display.blit(self.assets['background'], (0, 0))
+            
+            self.clouds.update()
+            self.clouds.render(self.display, (0, 0))
+            
+            menu_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 310), 
+                            text_input="BACK", font= self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            quit_button = Button(image=pygame.image.load("assets/main_rect.png"), pos=(320, 400), 
+                                text_input="QUIT", font=self.get_font(30), base_color="#d7fcd4", hovering_color="White")
+            
+            self.screen.blit(pygame.transform.scale(self.display, self.screen.get_size()), (0, 0))
+
+            self.screen.blit(lose_text, lose_rect)
+            self.screen.blit(time_beat, time_beat_rect.topleft)
+
+            for button in [menu_button, quit_button]:
+                button.changeColor(mpos)
+                button.update(self.screen)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if menu_button.checkForInput(mpos):
+                        self.movement = [False, False]
+                        self.game_start_time = pygame.time.get_ticks()
+                        self.total_paused_time = 0
+                        self.main_menu()
+                    if quit_button.checkForInput(mpos):
+                        pygame.quit()
+                        sys.exit()
+
+            self.clock.tick(60)
+
+            pygame.display.update()
 
 Game().run()
